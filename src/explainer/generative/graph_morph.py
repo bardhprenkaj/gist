@@ -21,9 +21,7 @@ from src.core.factory_base import get_instance_kvargs
 from src.core.trainable_base import Trainable
 from src.dataset.instances.graph import GraphInstance
 from src.dataset.utils.dataset_torch import TorchGeometricDataset, ZippedGraphDataset
-from src.explainer.helpers.perturbers.genetic import GeneticGraphPerturber
-from src.explainer.helpers.perturbers.obs import DCEPerturber
-from src.explainer.helpers.perturbers.simulated_annealing import SimulatedAnnealingPerturber
+from src.explainer.helpers.perturbers.dce import DCEPerturber
 from src.utils.cfg_utils import init_dflts_to_of
 from src.utils.logger import GLogger
 
@@ -60,35 +58,6 @@ class GraphMorphExplainer(Trainable, Explainer):
             overshot_graph = TorchGeometricDataset.to_gretel(Data(x=x, y=torch.tensor([new_label]), edge_index=edges))
 
         return overshot_graph  
-        """self.model.eval()
-        
-        with torch.no_grad():
-            # pad the adjacency matrix of the current instance
-            padded_adj = pad_adj_matrix(instance.data, self.n_nodes)
-            # create a new instance
-            new_instance = GraphInstance(id=instance.id,
-                                        label=instance.label,
-                                        data=padded_adj,
-                                        dataset=instance._dataset)
-            # redo the manipulators
-            instance._dataset.manipulate(new_instance)
-            # get the features, adj matrix, graph causality and label
-            features = torch.from_numpy(np.array(new_instance.node_features)).float().to(self.device)[None,:,:]
-            adj = torch.from_numpy(new_instance.data).float().to(self.device)[None,:,:]
-            causality = torch.from_numpy(np.array(new_instance.graph_features[self.dataset.graph_features_map["graph_causality"]])).float().to(self.device)[None,:]
-            labels = torch.from_numpy(np.array([new_instance.label])).to(self.device)[None,:]
-            
-            model_return = self.model(features, causality, adj, labels)
-            adj_reconst, features_reconst = model_return['adj_reconst'], model_return['features_reconst']
-            
-            adj_reconst_binary = torch.bernoulli(adj_reconst.squeeze())
-            
-            cf_instance = GraphInstance(id=instance.id,
-                                        label=instance.label,
-                                        data=adj_reconst_binary.to("cpu").detach().numpy(),
-                                        node_features=features_reconst.squeeze().to("cpu").detach().numpy())
-            
-            return cf_instance"""
         
     def real_fit(self):
         train_loader: DataLoader = self.__preprocess()
