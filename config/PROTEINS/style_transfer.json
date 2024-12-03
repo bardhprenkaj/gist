@@ -24,7 +24,7 @@
         "oracle": {
             "class": "src.oracle.nn.torch.OracleTorch",
             "parameters": {
-                "epochs": 200,
+                "epochs": 50,
                 "batch_size": 32,
                 "early_stopping_threshold":1e-4,
                 "optimizer": {
@@ -51,7 +51,8 @@
             "class": "src.explainer.generative.graph_morph.GraphMorphExplainer",
             "parameters": {
                 "batch_size": 16,
-                "epochs": 200
+                "epochs": 50,
+                "alpha": 0.5
             }
         }
     ],

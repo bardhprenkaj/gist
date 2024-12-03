@@ -41,22 +41,19 @@ class InstancesDumper(EvaluationMetric):
         return -1
     
     def __create_dirs(self, oracle: Oracle, explainer: Explainer, dataset: Dataset) -> str:
-        output_path = join(self._store_path, oracle.context._scope)
+        output_path = join(
+                join(
+                    join(
+                        join(
+                            join(
+                                join(self._store_path, oracle.context._scope),
+                                    dataset.name),
+                                        oracle.name), 
+                                            explainer.name), 
+                                                f'{explainer.fold_id}'), 
+                                                    f'{oracle.context.run_number}')
         makedirs(output_path, exist_ok=True)
 
-        output_path = join(output_path, dataset.name)
-        makedirs(output_path, exist_ok=True)
-
-        output_path = join(output_path, oracle.name)
-        makedirs(output_path, exist_ok=True)
-
-        output_path = join(output_path, explainer.name)
-        makedirs(output_path, exist_ok=True)
-        
-        output_path = join(output_path, str(explainer.fold_id))
-        makedirs(output_path, exist_ok=True)
-        
-        output_path = join(output_path, str(oracle.context.run_number))
-        makedirs(output_path, exist_ok=True)
+       
         
         return output_path

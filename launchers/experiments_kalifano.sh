@@ -5,7 +5,7 @@ trgt_scope=$2 # scope to be considered
 
 #for i in {1..30}
 #do
-for entry in "$search_dir"/*/*.json*
+for entry in "$search_dir"/*.json*
 do
   dcl_scope=$(python -c "import sys, json; from jsonc_parser.parser import JsoncParser; print(JsoncParser.parse_file('$entry')['experiment']['scope'])")
 

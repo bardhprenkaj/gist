@@ -34,6 +34,7 @@ class GraphMorphExplainer(Trainable, Explainer):
         self.hidden_dim = self.local_config['parameters']['hidden_dim']
         self.heads = self.local_config['parameters']['heads']
         self.epochs = self.local_config['parameters']['epochs']
+        self.alpha = self.local_config['parameters']['alpha']
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -95,8 +96,8 @@ class GraphMorphExplainer(Trainable, Explainer):
         # Loss calculations
         selected_edge_index = selected_edge_index.to(torch.int64)
         G_style.edge_index = G_style.edge_index.to(torch.int64)
-        s_loss = self.__style_loss(x_styled, selected_edge_index, G_style.x, G_style.edge_index)
-        c_loss = loss_fn(x_styled, G_prime.x) + F.binary_cross_entropy(edge_probs.squeeze().double(), labels.double())  # Example content loss
+        s_loss = (1-self.alpha) * self.__style_loss(x_styled, selected_edge_index, G_style.x, G_style.edge_index)
+        c_loss = self.alpha *(loss_fn(x_styled, G_prime.x) + F.binary_cross_entropy(edge_probs.squeeze().double(), labels.double()))  # Example content loss
         loss = s_loss + c_loss
         loss.backward()
         self.optimizer.step()
@@ -278,6 +279,7 @@ class GraphMorphExplainer(Trainable, Explainer):
         self.local_config['parameters']['hidden_dim'] =  self.local_config['parameters'].get('hidden_dim', 16)
         self.local_config['parameters']['heads'] =  self.local_config['parameters'].get('heads', 2)
         self.local_config['parameters']['epochs'] =  self.local_config['parameters'].get('epochs', 200)
+        self.local_config['parameters']['alpha'] = self.local_config['parameters'].get('alpha', 0.5)
         init_dflts_to_of(self.local_config, 'optimizer','torch.optim.Adam',lr=1e-3, weight_decay=1e-5)
 
 
