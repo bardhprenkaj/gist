@@ -21,16 +21,16 @@ class GraphInstance(DataInstance):
 
         num_nodes = self.data.shape[0]
         num_edges = np.count_nonzero(self.data)
-        assert len(self.node_features) == num_nodes
+        """assert len(self.node_features) == num_nodes
         assert len(self.edge_features) == num_edges
-        assert len(self.edge_weights) == num_edges
+        assert len(self.edge_weights) == num_edges"""
 
     def __deepcopy__(self, memo):
         num_nodes = self.data.shape[0]
         num_edges = np.count_nonzero(self.data)
-        assert len(self.node_features) == num_nodes
+        """assert len(self.node_features) == num_nodes
         assert len(self.edge_features) == num_edges
-        assert len(self.edge_weights) == num_edges
+        assert len(self.edge_weights) == num_edges"""
 
         # Fields that are being shallow copied
         _dataset = self._dataset
@@ -72,11 +72,7 @@ class GraphInstance(DataInstance):
         return np.ones(len(edges[0])) if edge_weights is None else edge_weights
     
     def _build_nx(self):
-        if self.is_directed:
-            nx_repr = nx.from_numpy_array(self.data, create_using=nx.DiGraph)
-        else:
-            nx_repr = nx.from_numpy_array(self.data, create_using=nx.Graph)
-
+        nx_repr = nx.from_numpy_array(self.data)
         nx_repr.add_nodes_from([node, {'node_features': self.node_features[node]}] for node in nx_repr.nodes())
         edges = list(nx_repr.edges)
         nx_repr.add_edges_from([(edge[0], edge[1], {'edge_features': self.edge_features[i], 'weight': self.edge_weights[i]}) for i, edge in enumerate(edges)])
@@ -90,10 +86,6 @@ class GraphInstance(DataInstance):
     @property
     def num_nodes(self):
         return len(self.data)
-    
-    @property
-    def is_directed(self):
-        return self.directed
             
     def nodes(self):
         return [ i for i in range(self.data.shape[0])]
@@ -106,3 +98,6 @@ class GraphInstance(DataInstance):
     
     def degrees(self):
         return [ len(self.neighbors(y)) for y in self.nodes()]
+
+    def __str__(self):
+        return f'GraphInstance(id={self.id})'

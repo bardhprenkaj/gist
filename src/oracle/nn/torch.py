@@ -20,14 +20,13 @@ class OracleTorch(TorchBase, Oracle):
         labels_list, preds = [], []
         for batch in loader:
             batch.batch = batch.batch.to(self.device)
-            node_features = batch.x.to(self.device)
-            edge_index = batch.edge_index.to(self.device)
-            edge_weights = batch.edge_attr.to(self.device)
+            node_features = batch.x.to(self.device).to(torch.float)
+            edge_index = batch.edge_index.to(self.device).to(torch.int64)
+            edge_weights = batch.edge_attr.to(self.device).to(torch.float)
             labels = batch.y.to(self.device).long()
             
             self.optimizer.zero_grad()  
-            pred = self.model(node_features, edge_index, edge_weights, batch.batch)            
-            loss = self.loss_fn(pred, labels)
+            pred, loss = self.model.fwd(node_features, edge_index, edge_weights, batch.batch, labels, self.loss_fn)
             losses.append(loss.to('cpu').detach().numpy())
             
             labels_list += list(labels.squeeze().long().detach().to('cpu').numpy())
@@ -43,11 +42,16 @@ class OracleTorch(TorchBase, Oracle):
     @torch.no_grad()
     def _real_predict_proba(self, data_inst):
         data_inst = TorchGeometricDataset.to_geometric(data_inst)
-        node_features = data_inst.x.to(self.device)
-        edge_index = data_inst.edge_index.to(self.device)
-        edge_weights = data_inst.edge_attr.to(self.device)
-        
-        return self.model(node_features,edge_index,edge_weights, None).cpu().squeeze()
+        node_features = data_inst.x.to(self.device).to(torch.float)
+        edge_index = data_inst.edge_index.to(self.device).to(torch.int64)
+        edge_weights = data_inst.edge_attr.to(self.device).to(torch.float)
+        try:
+            return self.model(node_features,edge_index,edge_weights, None).cpu().squeeze()
+        except IndexError:
+            print(node_features.shape)
+            print(edge_index.shape)
+            print(edge_weights.shape)
+            return self.model(node_features, edge_index, edge_weights, None).cpu().squeeze()
                      
     def check_configuration(self):#TODO: revise configuration
         super().check_configuration()

@@ -1,10 +1,11 @@
 import torch.nn as nn
 from torch_geometric.nn.aggr import MeanAggregation
 
+from src.core.trainable_base import Trainable
 from src.utils.torch.gcn import GCN
+import torch
 
-
-class DownstreamGCN(GCN):
+class DownstreamGCN(GCN, Trainable):
    
     def __init__(self, node_features,
                  n_classes=2,
@@ -23,6 +24,12 @@ class DownstreamGCN(GCN):
         self.downstream_layers = self.__init__downstream_layers()
         
         self.init_weights()
+
+    def init(self):
+        return super().init()
+    
+    def real_fit(self):
+        return
         
     def init_weights(self):
         for m in self.modules():
@@ -41,8 +48,13 @@ class DownstreamGCN(GCN):
                     nn.init.constant_(m.bias, 0)
         
     def forward(self, node_features, edge_index, edge_weight, batch):
+        node_features = node_features.to(torch.double)
         node_features = super().forward(node_features, edge_index, edge_weight, batch)
         return self.downstream_layers(node_features)
+    
+    def fwd(self, x, edge_index, edge_weights, batch, labels, loss_fn):
+        pred = self(x, edge_index, edge_weights, batch)
+        return pred, loss_fn(pred, labels)
     
     def __init__downstream_layers(self):
         ############################################

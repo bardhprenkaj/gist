@@ -172,6 +172,30 @@ class Dataset(Savable):
         instances = self.get_torch_instances(fold_id=fold_id, usage=usage, kls=kls, dataset_kls=dataset_kls)
         return DataLoader(instances, batch_size=batch_size, shuffle=True, drop_last=True)
     
+
+    def get_instances_by_indices(self,
+                                 fold_id: int=-1,
+                                 usage: str='train',
+                                 kls: int=-1) -> List[DataInstance]:
+        """
+            Retrieves a subset of DataInstance objects for a specific fold, and usage.
+
+            Parameters:
+                - fold_id (int, optional): The fold identifier. Defaults to -1, indicating all folds.
+                - usage (str, optional): The usage type, e.g., 'train' or 'test'. Defaults to 'train'.
+                - kls (int, optional): The class identifier. Defaults to -1, indicating all classes.
+
+            Returns:
+                List[DataInstance]: A subset of the DataInstance instances based on the specified parameters.
+        """
+        
+        indices = self.get_split_indices(fold_id)[usage]
+        # If a specific class (kls) is provided, filter out instances not belonging to that class
+        if kls != -1:
+            indices = list(set(indices).difference(set(self.class_indices()[kls])))
+    
+        return np.array(self.instances)[indices]
+
     def get_torch_instances(self,
                             fold_id: int=-1,
                             usage: str='train',

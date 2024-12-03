@@ -58,10 +58,16 @@ class Trainable(Savable,metaclass=ABCMeta):
     def real_fit(self):
         pass
 
+    @abstractmethod
+    def fwd(self, *args):
+        pass
+
     def check_configuration(self):
         super().check_configuration()
         self.local_config['parameters']['fold_id'] =  self.local_config['parameters'].get('fold_id', -1)
         self.fold_id = self.local_config['parameters']['fold_id'] 
+
+
     
 
     

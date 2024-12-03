@@ -7,8 +7,8 @@ from src.utils.context import Context
 
 class Generator(Configurable, metaclass=ABCMeta):
     
-    def __init__(self, context: Context, local_config, dataset=None) -> None:
-        self.dataset = dataset
+    def __init__(self, context: Context, local_config, dataset: Dataset=None) -> None:
+        self.dataset: Dataset = dataset
         super().__init__(context, local_config)
         self.current = 0
     

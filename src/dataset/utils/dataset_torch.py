@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import List
+from typing import List, Tuple
 
 import torch
 from torch_geometric.data import Data
@@ -35,6 +35,23 @@ class TorchGeometricDataset(GeometricDataset):
     label = torch.tensor(label).long()
     return Data(x=x, y=label, edge_index=a.T, edge_attr=w)
   
+  @classmethod
+  def to_gretel(self, data: Data) -> GraphInstance:
+    node_features = data.x.double().numpy()
+    adj_matrix = torch.zeros((node_features.shape[0], node_features.shape[0]), dtype=torch.float)
+    edge_index = data.edge_index
+    adj_matrix[edge_index[0,:], edge_index[1,:]] = 1.0
+    edge_weights = None
+    try:
+       if hasattr(data, 'edge_attr') and data.edge_attr.size(0):
+          edge_weights = data.edge_attr.double().numpy()
+    except:
+       edge_weights = None
+
+    return GraphInstance(id=-1, label=data.y.numpy(),
+                        data=adj_matrix.numpy(), node_features=node_features,
+                        edge_weights=edge_weights) 
+ 
   
 class TorchDataset(Dataset):
   
@@ -67,3 +84,24 @@ class TorchDataset(Dataset):
     
     def __getitem__(self, index):
         return self.instances(index)
+    
+
+class ZippedGraphDataset(GeometricDataset):
+    
+    def __init__(self, dataset1: List[Data], dataset2: List[Data]):
+        """
+        A dataset that zips two TorchGeometricDatasets together.
+        Args:
+            dataset1 (List[Data]): First dataset (e.g., train_graphs).
+            dataset2 (List[Data]): Second dataset (e.g., overshot_graphs).
+        """
+        super(ZippedGraphDataset, self).__init__()
+        assert len(dataset1) == len(dataset2), "Datasets must be of the same length"
+        self.dataset1 = dataset1
+        self.dataset2 = dataset2
+
+    def len(self):
+      return len(self.dataset1)
+  
+    def get(self, idx) -> Tuple[Data, Data]:
+      return self.dataset1[idx], self.dataset2[idx]
