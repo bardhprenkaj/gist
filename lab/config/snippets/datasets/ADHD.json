@@ -1,9 +1,0 @@
-{
-    "class": "src.dataset.dataset_base.Dataset",
-    "parameters": {
-        "generator": {
-            "class": "src.dataset.generators.adhd.ADHD", 
-            "parameters": { "data_dir": "data/datasets/adhd/graphs/" }
-        }
-    }
-}
