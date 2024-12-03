@@ -130,9 +130,10 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+data/datasets/*
+data/working/*
+data/PROTEINS/*
 # data folders
-data/*
-data/cache*
 data/working*
 lab/data/cache*
 lab/results_legacy*

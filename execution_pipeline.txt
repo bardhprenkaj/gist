@@ -4,7 +4,7 @@ python src/utils/generate_folds.py --config_file [config_file_path] --output_fol
 
 Then, execute
 
-sh launchers/experiments_kalifano.sh output_folder
+sh launchers/experiments_kalifano.sh output_folder_as_above scope_to_consider
 
 Once all the runs are done, you can run
 
