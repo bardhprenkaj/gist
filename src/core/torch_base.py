@@ -2,6 +2,7 @@ from typing import Tuple, Union
 import numpy as np
 import random
 import torch
+import tqdm
 
 from src.core.trainable_base import Trainable
 from src.utils.cfg_utils import init_dflts_to_of
@@ -48,7 +49,7 @@ class TorchBase(Trainable):
         best_val_loss =float('inf')
         interrupt: bool = False
 
-        for epoch in range(self.epochs):
+        for epoch in tqdm.tqdm(range(self.epochs)):
             self.model.train()
             losses, preds, labels_list = self.fwd(train_loader)
             accuracy = self.accuracy(labels_list, preds)

@@ -1,6 +1,7 @@
 import numpy as np
 
 import os
+import random
 
 import tqdm 
 
@@ -8,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torch.utils.data import Subset
 from typing import List
 from torch_geometric.nn import TransformerConv
 from torch_geometric.loader import DataLoader
@@ -61,19 +63,40 @@ class GraphMorphExplainer(Trainable, Explainer):
         return overshot_graph  
         
     def real_fit(self):
-        train_loader: DataLoader = self.__preprocess()
+        train_instances: Dataset = self.__preprocess()
+        train_idx = list(range(0, len(train_instances)))
+        random.shuffle(train_idx)
+        subset_size = max(1, int(len(train_idx) * .05))
+        val_idx = train_idx[:subset_size]
+        train_idx = train_idx[subset_size+1:]
+
+        train_loader: DataLoader = DataLoader(Subset(train_instances, train_idx), batch_size=self.batch_size)
+        val_loader: DataLoader = DataLoader(Subset(train_instances, val_idx), batch_size=self.batch_size)
+
         loss_fn = torch.nn.L1Loss()
-        
+        best_val_loss = float('inf')
+
         for epoch in range(self.epochs):
             self.model.train()
-            train_loss = 0
+            train_loss, val_loss = 0, 0
             for G_style, G_prime in tqdm.tqdm(train_loader, desc=f'Epoch {epoch + 1}/{self.epochs} [Training]'):
-                train_loss += self.fwd(G_style, G_prime, loss_fn)
+                self.optimizer.zero_grad()
+                loss = self.fwd(G_style, G_prime, loss_fn)
+                loss.backward()
+                self.optimizer.step()
+                train_loss += loss.item()
+            
+            with torch.no_grad():
+                for G_style, G_prime in tqdm.tqdm(val_loader, desc=f'Epoch {epoch + 1}/{self.epochs} [Validation]'):
+                    val_loss += self.fwd(G_style, G_prime, loss_fn).item()
 
-            self._logger.info(f"Epoch {epoch + 1}/{self.epochs}, Train Loss: {train_loss / len(train_loader):.4f}")
+            self._logger.info(f"Epoch {epoch + 1}/{self.epochs}, Train Loss: {train_loss / len(train_loader):.4f}, Val Loss: {val_loss / len(val_loader):.4f}")
+            if val_loss < train_loss and val_loss < best_val_loss:
+                best_val_loss = val_loss
+                self.write()
+                print(f"Model saved at epoch {epoch + 1} with validation loss: {val_loss:.4f}")
 
     def fwd(self, G_style: Data, G_prime: Data, loss_fn):
-        self.optimizer.zero_grad()
         edge_index = G_prime.edge_index.to(torch.int64)
         num_nodes = G_prime.x.size(0)
         # Create a dense adjacency matrix from edge_index
@@ -99,10 +122,7 @@ class GraphMorphExplainer(Trainable, Explainer):
         s_loss = (1-self.alpha) * self.__style_loss(x_styled, selected_edge_index, G_style.x, G_style.edge_index)
         c_loss = self.alpha *(loss_fn(x_styled, G_prime.x) + F.binary_cross_entropy(edge_probs.squeeze().double(), labels.double()))  # Example content loss
         loss = s_loss + c_loss
-        loss.backward()
-        self.optimizer.step()
-
-        return loss.item()
+        return loss
     
     def __inference(self, data: Data):
         """Apply the trained StyleTransferGNN for inference."""
@@ -244,7 +264,7 @@ class GraphMorphExplainer(Trainable, Explainer):
         
     
 
-    def __preprocess(self) -> DataLoader:
+    def __preprocess(self) -> Dataset:
         train_graphs: List[GraphInstance] = self.dataset.get_instances_by_indices(fold_id=self.fold_id)
         self.graph_perturber.instances = train_graphs
         #self.graph_perturber = GeneticGraphPerturber(oracle=self.oracle, instances=train_graphs)
@@ -270,7 +290,7 @@ class GraphMorphExplainer(Trainable, Explainer):
                 correct_overshot_graphs.append(overshot_graphs.get(i))
 
         dataset = ZippedGraphDataset(correct_training_graphs, correct_overshot_graphs)
-        return DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True)
+        return dataset
     
     def check_configuration(self):
         super().check_configuration()

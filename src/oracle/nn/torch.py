@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import tqdm
 
 from src.core.oracle_base import Oracle
 from src.core.torch_base import TorchBase
@@ -18,7 +19,7 @@ class OracleTorch(TorchBase, Oracle):
         
         losses = []
         labels_list, preds = [], []
-        for batch in loader:
+        for batch in tqdm.tqdm(loader):
             batch.batch = batch.batch.to(self.device)
             node_features = batch.x.to(self.device).to(torch.float)
             edge_index = batch.edge_index.to(self.device).to(torch.int64)
