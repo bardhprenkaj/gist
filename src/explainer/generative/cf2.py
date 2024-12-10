@@ -52,18 +52,19 @@ class CF2Explainer(Trainable, Explainer):
             losses = list()
 
             for graph in self.dataset.instances:
-                pred1, pred2 = self.model(graph, self.oracle)
-                loss = self.model.loss(graph,
-                                           pred1, pred2,
-                                           self.gamma, self.lam,
-                                           self.alpha)
-                
+                loss = self.fwd(graph)
                 losses.append(loss.to('cpu').detach().numpy())
-                loss.backward()
-                self.optimizer.step()
+
             self.context.logger.info(f"Epoch {epoch+1} --- loss {np.mean(losses)}")
         
         self.model._fitted = True
+
+    def fwd(self, graph):
+        pred1, pred2 = self.model(graph, self.oracle)
+        loss = self.model.loss(graph, pred1, pred2, self.gamma, self.lam, self.alpha)
+        loss.backward()
+        self.optimizer.step()
+        return loss
 
     def explain(self, instance : GraphInstance):
 
