@@ -60,6 +60,7 @@ class CF2Explainer(Trainable, Explainer):
         self.model._fitted = True
 
     def fwd(self, graph):
+        self.optimizer.zero_grad()
         pred1, pred2 = self.model(graph, self.oracle)
         loss = self.model.loss(graph, pred1, pred2, self.gamma, self.lam, self.alpha)
         loss.backward()
