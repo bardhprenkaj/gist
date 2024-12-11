@@ -38,7 +38,7 @@ class GraphMorphExplainer(Trainable, Explainer):
         self.epochs = self.local_config['parameters']['epochs']
         self.alpha = self.local_config['parameters']['alpha']
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device =  "cuda" if torch.cuda.is_available() else "cpu"
 
         self.model = GraphMorph(input_dim=self.input_dim, 
                                 hidden_dim=self.hidden_dim, 
@@ -58,7 +58,7 @@ class GraphMorphExplainer(Trainable, Explainer):
         new_label = self.oracle.predict(overshot_graph)
         if org_label != new_label:
             x, edges = self.__inference(TorchGeometricDataset.to_geometric(overshot_graph, label=new_label))
-            overshot_graph = TorchGeometricDataset.to_gretel(Data(x=x, y=torch.tensor([new_label]), edge_index=edges))
+            overshot_graph = TorchGeometricDataset.to_gretel(Data(x=x.cpu(), y=torch.tensor([new_label]), edge_index=edges.cpu()))
 
         return overshot_graph  
         
@@ -81,14 +81,18 @@ class GraphMorphExplainer(Trainable, Explainer):
             train_loss, val_loss = 0, 0
             for G_style, G_prime in tqdm.tqdm(train_loader, desc=f'Epoch {epoch + 1}/{self.epochs} [Training]'):
                 self.optimizer.zero_grad()
+                G_style = G_style.to(self.device)
+                G_prime = G_prime.to(self.device)
                 loss = self.fwd(G_style, G_prime, loss_fn)
                 loss.backward()
                 self.optimizer.step()
-                train_loss += loss.item()
+                train_loss += loss.cpu().item()
             
             with torch.no_grad():
                 for G_style, G_prime in tqdm.tqdm(val_loader, desc=f'Epoch {epoch + 1}/{self.epochs} [Validation]'):
-                    val_loss += self.fwd(G_style, G_prime, loss_fn).item()
+                    G_style = G_style.to(self.device)
+                    G_prime = G_prime.to(self.device)
+                    val_loss += self.fwd(G_style, G_prime, loss_fn).cpu().item()
 
             self._logger.info(f"Epoch {epoch + 1}/{self.epochs}, Train Loss: {train_loss / len(train_loader):.4f}, Val Loss: {val_loss / len(val_loader):.4f}")
             if val_loss < train_loss and val_loss < best_val_loss:
@@ -100,9 +104,10 @@ class GraphMorphExplainer(Trainable, Explainer):
         edge_index = G_prime.edge_index.to(torch.int64)
         num_nodes = G_prime.x.size(0)
         # Create a dense adjacency matrix from edge_index
-        adj_matrix = to_dense_adj(edge_index, max_num_nodes=num_nodes).squeeze(0) 
+        adj_matrix = to_dense_adj(edge_index, max_num_nodes=num_nodes).squeeze(0).to(self.device)
         # Generate all possible edges
         all_possible_edges = torch.cartesian_prod(torch.arange(num_nodes), torch.arange(num_nodes))
+        all_possible_edges = all_possible_edges.to(self.device)
         # Separate positive and negative edges
         pos_edges = edge_index.t()  # Ground truth edges
         neg_edges = all_possible_edges[
@@ -111,7 +116,7 @@ class GraphMorphExplainer(Trainable, Explainer):
         ]  # Non-existent edges, excluding self-loops
 
         # Combine positive and negative edges
-        all_edges = torch.cat([pos_edges, neg_edges], dim=0)
+        all_edges = torch.cat([pos_edges, neg_edges], dim=0).to(self.device)
 
         labels = torch.cat([torch.ones(pos_edges.size(0)), torch.zeros(neg_edges.size(0))], dim=0)
         # Forward pass through the model
@@ -120,7 +125,7 @@ class GraphMorphExplainer(Trainable, Explainer):
         selected_edge_index = selected_edge_index.to(torch.int64)
         G_style.edge_index = G_style.edge_index.to(torch.int64)
         s_loss = (1-self.alpha) * self.__style_loss(x_styled, selected_edge_index, G_style.x, G_style.edge_index)
-        c_loss = self.alpha *(loss_fn(x_styled, G_prime.x) + F.binary_cross_entropy(edge_probs.squeeze().double(), labels.double()))  # Example content loss
+        c_loss = self.alpha *(loss_fn(x_styled, G_prime.x) + F.binary_cross_entropy(edge_probs.squeeze().double().cpu(), labels.double().cpu()))  # Example content loss
         loss = s_loss + c_loss
         return loss
     
@@ -128,12 +133,13 @@ class GraphMorphExplainer(Trainable, Explainer):
         """Apply the trained StyleTransferGNN for inference."""
         self.model.eval()
         with torch.no_grad():
+            data = data.to(self.device)
             edge_index = data.edge_index.to(torch.int64)
             num_nodes = data.x.size(0)
             # Create a dense adjacency matrix from edge_index
-            adj_matrix = to_dense_adj(edge_index, max_num_nodes=num_nodes).squeeze(0)
+            adj_matrix = to_dense_adj(edge_index, max_num_nodes=num_nodes).squeeze(0).to(self.device)
             # Generate all possible edges
-            all_possible_edges = torch.cartesian_prod(torch.arange(num_nodes), torch.arange(num_nodes))
+            all_possible_edges = torch.cartesian_prod(torch.arange(num_nodes, device=self.device), torch.arange(num_nodes, device=self.device))
             # Separate positive and negative edges
             pos_edges = edge_index.t()  # Ground truth edges
             neg_edges = all_possible_edges[
@@ -141,7 +147,7 @@ class GraphMorphExplainer(Trainable, Explainer):
                 & (all_possible_edges[:, 0] != all_possible_edges[:, 1])
             ]  # Non-existent edges, excluding self-loops
             # Combine positive and negative edges
-            all_edges = torch.cat([pos_edges, neg_edges], dim=0)
+            all_edges = torch.cat([pos_edges, neg_edges], dim=0).to(self.device)
 
             x_styled, _, selected_edge_index = self.model(data.x, edge_index, edge_pairs=all_edges.t())
 
@@ -333,6 +339,12 @@ class GraphMorph(nn.Module):
         """
         Forward pass for node embeddings and edge probabilities with detailed debugging.
         """
+        device = next(self.parameters()).device
+        x = x.to(device)
+        edge_index = edge_index.to(device)
+        if edge_pairs is not None:
+            edge_pairs = edge_pairs.to(device)
+
         # Validate edge_index
         if edge_index.size(0) != 2:
             raise ValueError(f"edge_index must have shape (2, num_edges), but got {edge_index.shape}")
