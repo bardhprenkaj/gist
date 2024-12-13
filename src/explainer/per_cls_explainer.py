@@ -42,6 +42,9 @@ class PerClassExplainer(Trainable, Explainer):
     def get_proto_kls(self):
         return self._proto_kls
         
+    def fwd(self, *args):
+        pass
+    
     def check_configuration(self):
         super().check_configuration()
         
