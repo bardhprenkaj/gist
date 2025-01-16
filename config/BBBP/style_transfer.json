@@ -1,6 +1,6 @@
 {  
     "experiment" : {
-        "scope": "BBBP",
+        "scope": "BBBP_alpha_0.9_hidden_10",
         "parameters" : {
             "lock_release_tout":120,
             "propagate":[
@@ -17,9 +17,9 @@
          {
             "class": "src.explainer.generative.graph_morph.GraphMorphExplainer",
             "parameters": {
-                "batch_size": 16,
+                "batch_size": 32,
                 "epochs": 50,
-                "alpha": 0.5
+                "alpha": 0.9
             }
         }
     ]

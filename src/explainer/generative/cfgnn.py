@@ -19,20 +19,17 @@ class CFGNNCExplainer(Explainer):
         self.oracle = retake_oracle(self.local_config)
         
         local_params = self.local_config['parameters']
-        self.α = local_params['alpha'] # α: Learning Rate
+        self.learning_rate = local_params['learning_rate'] # learning_rate: Learning Rate
         self.K = local_params['K'] # K: Number of Iterations (to update pertubation matrices (P_hat, etc.))
-        self.β = local_params['beta'] # β: Trade-off between Lpred and Ldist Eq.1 [4]
-        self.γ = local_params['gamma'] # γ: Add missing edges to the adjacency matrix (γ ∈ [0, 1])
+        self.beta = local_params['beta'] # beta: Trade-off between Lpred and Ldist Eq.1 [4]
+        self.gamma = local_params['gamma'] # gamma: Add missing edges to the adjacency matrix (gamma ∈ [0, 1])
 
-        # self.loss_fn = torch.nn.BCELoss()
         self.loss_fn = torch.nn.NLLLoss()
         
         assert ((isinstance(self.K, float) or isinstance(self.K, int)) and self.K >= 1)
-        assert ((isinstance(self.α, float) or isinstance(self.α, int)) and self.α > 0)
-        assert ((isinstance(self.β, float) or isinstance(self.β, int)) and self.β >= 0)
-        assert ((isinstance(self.γ, float) or isinstance(self.γ, int)) and 0 <= self.γ <= 1)
-
-        # print(self.α, self.K, self.β)
+        assert ((isinstance(self.learning_rate, float) or isinstance(self.learning_rate, int)) and self.learning_rate > 0)
+        assert ((isinstance(self.beta, float) or isinstance(self.beta, int)) and self.beta >= 0)
+        assert ((isinstance(self.gamma, float) or isinstance(self.gamma, int)) and 0 <= self.gamma <= 1)
 
 
     def explain(self, instance):
@@ -54,31 +51,16 @@ class CFGNNCExplainer(Explainer):
         self.v = (self.A_v, self.x)
         
         self.f_v = torch.tensor(self.oracle.predict(instance), dtype=torch.long) # Get GCN prediction
-        # print(f"{Color.YELLOW}Initial prediction (f_v): {Color.RESET}{self.f_v}")  # Debugging
-
-        '''f_v_GI = GraphInstance(
-            id = 0,
-            label = "Original Instance",
-            data = instance.data,
-            node_features = instance.node_features,
-            # edge_features = edge_features_np,
-            # edge_weights= edge_weights_np,
-            edge_features = instance.edge_features,
-            edge_weights = instance.edge_weights,
-            graph_features= instance.graph_features
-            )
-        
-        f_v_GI_pred = torch.tensor(self.oracle.predict(f_v_GI), dtype=torch.float64) # Get GCN prediction
-        print(f"Initial prediction (f_v_GI_pred): {f_v_GI_pred}")  # Debugging       '''
+        print(f"{Color.YELLOW}Initial prediction (f_v): {Color.RESET}{self.f_v}")  # Debugging
         
         self.P_hat = torch.ones_like(self.A_v, requires_grad=False) # Initialization of P_hat
-        self.P_hat[missing_edges] = self.γ # Adjacency matrix is full of ones and P stores the zero edges (i.e. inverting the roles of A_v and P)
+        self.P_hat[missing_edges] = self.gamma # Adjacency matrix is full of ones and P stores the zero edges (i.e. inverting the roles of A_v and P)
         self.P_hat.requires_grad_(True)
         # print(self.P_hat, instance.data)
-        # print(torch.equal(self.P_hat, torch.tensor(instance.data))) # Debugging: with γ != 0 → False
+        # print(torch.equal(self.P_hat, torch.tensor(instance.data))) # Debugging: with gamma != 0 → False
 
         self.P_node_hat = torch.tensor(instance.node_features, requires_grad=False) # Initialization of P_node_hat: Perturbation matrix for Node Features
-        # self.P_node_hat[missing_nodefeatures] = self.γ
+        # self.P_node_hat[missing_nodefeatures] = self.gamma
         self.P_node_hat.requires_grad_(True)
         # print(self.P_node_hat, self.node_features)
 
@@ -88,13 +70,13 @@ class CFGNNCExplainer(Explainer):
         self.edge_weights_opt = instance.data[edge_indices] # real array
 
         for _ in range(int(self.K)):
-            # print(f"Iteration: {_}")
+            print(f"Iteration: {_}")
             
             v_bar, valid_CF = self.__get_CF_example(instance)
 
             #print("Calculating loss")
             loss = self.__calculate_loss(v_bar, instance, valid_CF)
-            # print("Ldist:", L_dist, self.β, L_pred)
+            # print("Ldist:", L_dist, self.beta, L_pred)
             # print(self.N_v_bar_copy.grad, self.A_v_bar_copy.grad)
             # print(f"loss: {total_loss}")
             # print(self.N_v_bar.requires_grad, self.A_v_bar.requires_grad)
@@ -169,8 +151,8 @@ class CFGNNCExplainer(Explainer):
 
             with torch.no_grad():  # Update without tracking the gradients further
                 # print(f"Gradient of P_hat: {self.P_hat.grad}")  # Debugging to check gradients
-                self.P_hat -= self.α * self.P_hat.grad  # Gradient step with learning rate
-                self.P_node_hat -= self.α * self.P_node_hat
+                self.P_hat -= self.learning_rate * self.P_hat.grad  # Gradient step with learning rate
+                self.P_node_hat -= self.learning_rate * self.P_node_hat
                 # print(f"self.P_hat.grad: {self.P_hat.grad}")
                     
             self.P_hat.grad.zero_()
@@ -250,15 +232,15 @@ class CFGNNCExplainer(Explainer):
         # print("v_bar_cand", v_bar_cand) # Debugging
 
         # Count number of edges in A_v_bar
-        # edges = torch.nonzero(self.A_v_bar)  # Get the indices of non-zero entries in the modified adjacency matrix    
+        edges = torch.nonzero(self.A_v_bar)  # Get the indices of non-zero entries in the modified adjacency matrix    
 
-        '''edge_weights = torch.zeros_like(self.A_v)
+        """edge_weights = torch.zeros_like(self.A_v)
         edge_weights[edges[0], edges[1]] = instance.edge_weights[edges[0], edges[1]] # Taking only the weights of edges present after pertubation
         edge_weights = edge_weights.flatten()
 
         edge_features = torch.zeros_like(self.A_v)
         edge_features[edges[0], edges[1]] = instance.edge_features[edges[0], edges[1]] # Taking only the features of edges present after pertubation
-        edge_features = edge_features.flatten()'''
+        edge_features = edge_features.flatten()"""
 
         A_v_bar_np = self.A_v_bar.clone().detach().numpy(); # print(type(A_v_bar_np))  # Should be <class 'numpy.ndarray'>
         ### edge_features_np = edge_features.clone().detach().numpy(); # print(type(edge_features_np))  # Should be <class 'numpy.ndarray'> 
@@ -282,14 +264,14 @@ class CFGNNCExplainer(Explainer):
         # self.N_v_bar_copy = torch.tensor(self.N_v_bar.data, requires_grad=True)
         N_v_bar_np = self.N_v_bar.clone().detach().numpy()
 
-        '''try:
+        try:
             edge_features = instance.edge_features[self.edge_indices]
 
             A_v_bar_GI = GraphInstance(
             id=instance.id,
             label="CF",
             data = A_v_bar_np,
-            node_features = instance.node_features,
+            node_features = N_v_bar_np,
             edge_features = edge_features,
             edge_weights = edge_weights_np,
             graph_features = instance.graph_features
@@ -302,11 +284,11 @@ class CFGNNCExplainer(Explainer):
             id=instance.id,
             label="CF",
             data = A_v_bar_np,
-            node_features = instance.node_features,
-            # edge_features = edge_features,
+            node_features = N_v_bar_np,
+            edge_features = instance.edge_features,
             edge_weights = edge_weights_np,
             graph_features = instance.graph_features
-            )'''
+            )
 
 
         # if (edge_weights_np.size != edge_features.size): print(edge_weights_np.size, edge_features.size)
@@ -321,15 +303,15 @@ class CFGNNCExplainer(Explainer):
 
         # print(f"Are P_sigmoid and edge_weights equal: {torch.equal(P_sigmoid, edge_weights)}")
 
-        A_v_bar_GI = GraphInstance(
+        """A_v_bar_GI = GraphInstance(
             id=instance.id,
             label="CF",
             data = A_v_bar_np,
             node_features = N_v_bar_np, # instance.node_features,
-            # edge_features = edge_features,
+            edge_features = edge_features,
             edge_weights = edge_weights_np,
             graph_features = instance.graph_features
-            )
+            )"""
                 
         # self.oracle.predict(instance); exit()
 
@@ -432,7 +414,7 @@ class CFGNNCExplainer(Explainer):
     def __calculate_loss(self, v_bar, instance, valid_CF):
         """
         Loss function based on:
-        L = Lpred(v,  v_bar | f, g) + βLdist(v, v_bar | d) Eq(1) [4].
+        L = Lpred(v,  v_bar | f, g) + betaLdist(v, v_bar | d) Eq(1) [4].
         L_pred(v, v_bar | f, g) = -1[f(v) = f(v_bar)] * L_NLL(f(v), g(v_bar)) Eq(5) [5.3].
         L_dist(v, v_bar | d): the element-wise difference between A_v and A_v_bar, i.e., the number of edges removed.
         """
@@ -470,7 +452,7 @@ class CFGNNCExplainer(Explainer):
         # print(f"node_diff.sum(): {node_diff.sum()}")
         
         # 3. Total loss
-        total_loss = L_pred + self.β * L_dist
+        total_loss = L_pred + self.beta * L_dist
         
         # return L_pred
         return total_loss
@@ -490,20 +472,17 @@ class CFGNNCExplainer(Explainer):
         super().check_configuration()
         local_config = self.local_config
         
-        if 'overshoot_factor' not in local_config['parameters']:
-            local_config['parameters']['overshoot_factor'] = 2
+        if 'K' not in local_config['parameters']:
+            local_config['parameters']['K'] = 100
         
-        if 'step_size' not in local_config['parameters']:
-            local_config['parameters']['step_size'] = 0.2
-            
-        if 'max_iterations' not in local_config['parameters']:
-            local_config['parameters']['max_iterations'] = 10
-            
-        if 'perturbation' not in local_config['parameters']:
-            local_config['parameters']['perturbation'] = 1
-            
-        if 'threshold' not in local_config['parameters']:
-            local_config['parameters']['threshold'] = 0.3
+        if 'learning_rate' not in local_config['parameters']:
+            local_config['parameters']['learning_rate'] = .01
+
+        if 'beta' not in local_config['parameters']:
+            local_config['parameters']['beta'] = 0.1
+
+        if 'gamma' not in local_config['parameters']:
+            local_config['parameters']['gamma'] = 0.5
                
         self.fold_id = self.local_config['parameters'].get('fold_id',-1)
 
