@@ -16,16 +16,16 @@ class DCEPerturber(GraphPerturber):
 
 
     def perturb(self) -> List[GraphInstance]:
-        return [self.perturb_instance(instance) for instance in self.instances]
+        return [self.perturb_instance(instance) for instance in tqdm.tqdm(self.instances, desc="Perturbing dataset")]
     
     def perturb_instance(self, instance) -> GraphInstance:
         return self.__perturb(self.oracle.predict(instance))
 
     def __perturb(self, org_label) -> GraphInstance:
-        print(f'org_label = {org_label}')
+        #print(f'org_label = {org_label}')
         shuffled = deepcopy(self.instances)
         random.shuffle(shuffled)
-        for ctf_candidate in tqdm.tqdm(shuffled):
+        for ctf_candidate in shuffled:
             if org_label != self.oracle.predict(ctf_candidate):
                 return ctf_candidate
         return None
