@@ -101,7 +101,36 @@ class CLEARExplainer(Trainable, Explainer):
         
         self.model._fitted = True
 
+
+    
+    def choose_other_labels(self, labels: torch.Tensor, num_classes: int) -> torch.Tensor:
+        """
+        For each element in `labels` (a PyTorch tensor), choose a random number
+        between 0 and `num_classes` (exclusive) that is not equal to the element itself.
+        
+        Parameters:
+            labels (torch.Tensor): Tensor of labels (1D).
+            num_classes (int): The number of classes (exclusive upper bound).
+            
+        Returns:
+            torch.Tensor: A tensor of numbers different from the original labels.
+        """
+        # Generate random numbers for each label in the range [0, num_classes)
+        random_numbers = torch.randint(0, num_classes, labels.size(), device=labels.device)
+
+        # Identify where the random numbers are equal to the labels
+        conflict_mask = random_numbers == labels
+
+        while conflict_mask.any():
+            # Regenerate random numbers for conflicts
+            random_numbers[conflict_mask] = torch.randint(0, num_classes, (conflict_mask.sum().item(),), device=labels.device)
+            # Recompute the conflict mask
+            conflict_mask = random_numbers == labels
+
+        return random_numbers
+
     def fwd(self, train_loader, epoch):
+        num_classes = self.dataset.num_classes
         batch_num = 0
         loss, loss_kl, loss_sim, loss_cfe, loss_kl_cf = 0, 0, 0, 0, 0
         for adj, features, labels, causality in train_loader:
@@ -110,7 +139,7 @@ class CLEARExplainer(Trainable, Explainer):
             features = features.float().to(self.device)
             causality = causality.float().to(self.device)
             adj = adj.float().to(self.device)
-            labels = (1 - labels.float()).to(self.device)[:,None]
+            labels = self.choose_other_labels(labels, num_classes).float().to(self.device)[:,None]
             ########################################################
             self.optimizer.zero_grad()
             # forward pass
@@ -181,7 +210,7 @@ class CLEARExplainer(Trainable, Explainer):
             y_pred.append(np.array(oracle.predict_proba(temp_instance)))
 
         y_pred = torch.from_numpy(np.array(y_pred)).float().squeeze()
-        loss_cfe = F.nll_loss(F.log_softmax(y_pred, dim=-1), y_cf.to("cpu").view(-1).long())
+        loss_cfe = F.cross_entropy(y_pred, y_cf.view(-1).to("cpu").long())
         
         # rep loss
         if z_mu_cf is None:
