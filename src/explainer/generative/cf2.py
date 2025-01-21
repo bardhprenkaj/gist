@@ -78,7 +78,7 @@ class CF2Explainer(Trainable, Explainer):
             cf_instance = deepcopy(instance)
 
             weighted_adj = self.model._rebuild_weighted_adj(instance)
-            masked_adj = self.model.get_masked_adj(weighted_adj).numpy()
+            masked_adj = self.model.get_masked_adj(weighted_adj).cpu().numpy()
             # update instance copy from masked_ajd
             # cf_instance.data = masked_adj        
 
@@ -111,7 +111,7 @@ class ExplainModelGraph(torch.nn.Module):
         # re-build weighted adjacency matrix
         weighted_adj = self._rebuild_weighted_adj(graph)
         # get the masked_adj
-        masked_adj = self.get_masked_adj(weighted_adj)
+        masked_adj = self.get_masked_adj(weighted_adj).cpu()
         # get the new weights as the difference between
         # the weighted adjacency matrix and the masked learned
         new_weights = weighted_adj - masked_adj
@@ -141,7 +141,7 @@ class ExplainModelGraph(torch.nn.Module):
     def get_masked_adj(self, weights):
         sym_mask = torch.sigmoid(self.mask)
         sym_mask = (sym_mask + sym_mask.t()) / 2
-        masked_adj = weights * sym_mask
+        masked_adj = weights.to(self.device) * sym_mask.to(self.device)
         return masked_adj
 
     def loss(self, graph : GraphInstance, pred1, pred2, gam, lam, alp):
@@ -149,7 +149,7 @@ class ExplainModelGraph(torch.nn.Module):
         bpr1 = torch.nn.functional.relu(gam + 0.5 - pred1)  # factual
         bpr2 = torch.nn.functional.relu(gam + pred2 - 0.5)  # counterfactual
         masked_adj = torch.flatten(self.get_masked_adj(weights))
-        L1 = torch.linalg.norm(masked_adj, ord=1)
+        L1 = torch.linalg.norm(masked_adj.cpu(), ord=1)
         return L1 + lam * (alp * bpr1 + (1 - alp) * bpr2)
     
     
