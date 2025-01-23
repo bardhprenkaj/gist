@@ -357,8 +357,8 @@ class CLEAR(nn.Module):
             z_mu = self.encoder_mean(torch.cat((graph_rep, y_cf), dim=1))
             z_logvar = self.encoder_var(torch.cat((graph_rep, y_cf), dim=1))
         else:
-            z_mu = self.encoder_mean(torch.cat((graph_rep, causality, y_cf), dim=1))
-            z_logvar = self.encoder_var(torch.cat((graph_rep, causality, y_cf), dim=1))
+            z_mu = self.encoder_mean(torch.cat((graph_rep, causality, y_cf.float()), dim=1))
+            z_logvar = self.encoder_var(torch.cat((graph_rep, causality, y_cf.float()), dim=1))
             
         return z_mu, z_logvar
     
@@ -369,11 +369,11 @@ class CLEAR(nn.Module):
                 ).view(-1, self.n_nodes, self.n_nodes)
         else:
             adj_reconst = self.decoder_a(
-                torch.cat((z, causality, y_cf), dim=1)
+                torch.cat((z, causality, y_cf.float()), dim=1)
                 ).view(-1, self.n_nodes, self.n_nodes)
                             
         features_reconst = self.decoder_x(
-            torch.cat((z, y_cf), dim=1)
+            torch.cat((z, y_cf.float()), dim=1)
             ).view(-1, self.n_nodes, self.x_dim)
         
         return features_reconst, adj_reconst
