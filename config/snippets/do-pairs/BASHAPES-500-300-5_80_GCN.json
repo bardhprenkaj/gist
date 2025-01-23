@@ -6,9 +6,9 @@
               "class": "src.dataset.generators.ba_shapes.BAShapes", 
               "parameters": { 
                 "num_instances": 500, 
-                "num_nodes_per_instance": 300,
+                "num_nodes_per_instance": 8,
                 "num_edges": 5,
-                "num_motives":80 
+                "num_motives":7 
               }
           }
       } 
@@ -16,8 +16,8 @@
     "oracle": {
       "class": "src.oracle.nn.torch.OracleTorch",
       "parameters": {
-          "epochs": 500,
-          "batch_size": 64,
+          "epochs": 10,
+          "batch_size": 4,
           "early_stopping_threshold":1e-4,
           "optimizer": {
               "class": "torch.optim.RMSprop",
