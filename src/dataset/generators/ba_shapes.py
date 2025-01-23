@@ -39,18 +39,18 @@ class BAShapes(Generator):
             num_graphs=self.num_instances // 2
         )
 
-        self.__populate_dataset(dataset_house, label=0)
-        self.__populate_dataset(dataset_grid, label=1)
+        self.__populate_dataset(dataset_house, label=1, motif='house')
+        self.__populate_dataset(dataset_grid, label=0, motif='grid')
 
-    def __populate_dataset(self, dataset, label=0):
+    def __populate_dataset(self, dataset, label=0, motif='house'):
          for i in range(len(dataset)):
             adj_matrix = torch.zeros(dataset[i].y.size(0), dataset[i].y.size(0))
             adj_matrix[dataset[i].edge_index[0], dataset[i].edge_index[1]] = 1.0
             adj_matrix[dataset[i].edge_index[1], dataset[i].edge_index[0]] = 1.0
-
             self.dataset.instances.append(
                 GraphInstance(id=i,
                               label=label,
+                              graph_features=motif,
                               data=adj_matrix.numpy())
             )
-    
+

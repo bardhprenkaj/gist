@@ -137,19 +137,19 @@ class TorchBase(Trainable):
     def __get_loaders(self, instances) -> Tuple[DataLoader, DataLoader]:
         train_loader, val_loader = None, None
         if self.early_stopping_threshold:
-            num_instances = len(self.dataset.instances)
+            num_instances = len(instances)
             # get 5% of training instances and reserve them for validation
             indices = list(range(num_instances))
             random.shuffle(indices)
-            val_size = max(int(.05 * len(indices)), self.batch_size)
+            val_size = int(.05 * len(indices))
             train_size = len(indices) - val_size
             # get the training instances
             train_instances = Subset(instances, indices[:train_size - 1])
             val_instances = Subset(instances, indices[train_size:])
             # get the train and validation loaders
-            train_loader = DataLoader(train_instances, batch_size=self.batch_size, shuffle=True, drop_last=True)
-            val_loader = DataLoader(val_instances, batch_size=self.batch_size, shuffle=True, drop_last=True)
+            train_loader = DataLoader(train_instances, batch_size=min(self.batch_size, train_size), shuffle=True, drop_last=True)
+            val_loader = DataLoader(val_instances, batch_size=min(self.batch_size, val_size), shuffle=True, drop_last=True)
         else:
-            train_loader = DataLoader(instances, batch_size=self.batch_size, shuffle=True, drop_last=True)
+            train_loader = DataLoader(instances, batch_size=min(self.batch_size, train_size), shuffle=True, drop_last=True)
 
         return train_loader, val_loader
