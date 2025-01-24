@@ -14,14 +14,12 @@
     },
 
     "do-pairs":[ {"compose_tc28": "config/snippets/do-pairs/BASHAPES-500-300-5_80_GCN.json"} ],
-    "explainers": [ 
-         {
-            "class": "src.explainer.generative.graph_morph.GraphMorphExplainer",
+    "explainers" : [
+        {
+            "class": "src.explainer.search.i_rand.IRandExplainer",
             "parameters": {
-                "batch_size": 18,
-                "epochs": 100,
-                "alpha": 0.9,
-                "hidden_dim": 4
+                "p": 0.01,
+                "t": 3
             }
         }
     ],

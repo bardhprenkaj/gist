@@ -15,16 +15,26 @@
 
     "do-pairs":[ {"compose_tc28": "config/snippets/do-pairs/BASHAPES-500-300-5_80_GCN.json"} ],
     "explainers": [ 
-         {
-            "class": "src.explainer.generative.graph_morph.GraphMorphExplainer",
+        {
+            "class": "src.explainer.generative.rsgg.RSGG",
             "parameters": {
-                "batch_size": 18,
-                "epochs": 100,
-                "alpha": 0.9,
-                "hidden_dim": 4
+              "epochs": 500,
+              "models": [
+                {
+                    "class": "src.explainer.generative.gans.graph.model.GAN",
+                    "parameters": {
+                        "batch_size": 1,
+                        "discriminator": {
+                            "class": "src.explainer.generative.gans.graph.discriminators.TopKPoolingDiscriminator",
+                            "parameters": {}
+                        }
+                    }
+                }
+            ]
             }
-        }
-    ],
+          } 
+
+     ],
     "compose_mes" : "config/snippets/default_metrics_w_dumper.json",
     "compose_strs" : "config/snippets/default_store_paths.json"
 }
