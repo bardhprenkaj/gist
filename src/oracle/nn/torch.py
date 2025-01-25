@@ -47,6 +47,9 @@ class OracleTorch(TorchBase, Oracle):
         edge_index = data_inst.edge_index.to(self.device).to(torch.int64)
         edge_weights = data_inst.edge_attr.to(self.device).to(torch.float)
         try:
+            if len(node_features.shape) == 1:
+                node_features = node_features.unsqueeze(-1)
+
             return self.model(node_features,edge_index,edge_weights, None).cpu().squeeze()
         except IndexError:
             print(node_features.shape)
