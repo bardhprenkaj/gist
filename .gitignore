@@ -150,7 +150,6 @@ config/_papers
 experiments/
 config/Gretel1_AAAI/
 evaluated/*
-data/bardh_cache/*
 old_experiments/
 visualizations/*
 .csv

@@ -66,13 +66,3 @@ def pad_features(features, target_dimension):
         to_pad = np.zeros((rows_to_add, feature_dim))
         features = np.vstack([features, to_pad])
     return features
-# from src.utils.utils import update_saved_pyg 
-
-#input_file="/NFSHOME/mprado/CODE/gretel-steel-2/GRETEL/data/explainers/clear_fit_on_tree-cycles_instances-500_nodes_per_inst-28_nodes_in_cycles-7_fold_id=0_batch_size_ratio=0.15_alpha=0.4_lr=0.01_weight_decay=5e-05_epochs=600_dropout=0.1/old_explainer"
-#output_file="/NFSHOME/mprado/CODE/gretel-steel-2/GRETEL/data/explainers/clear_fit_on_tree-cycles_instances-500_nodes_per_inst-28_nodes_in_cycles-7_fold_id=0_batch_size_ratio=0.15_alpha=0.4_lr=0.01_weight_decay=5e-05_epochs=600_dropout=0.1/explainer"
-#update_saved_pyg(input_file,output_file)
-
-
-#based_dir='/NFSHOME/mprado/CODE/gretel-steel-2/GRETEL/data/explainers/'
-#sanitize_dir_pyg(based_dir,"clear")
-#unfold_confs("config/aaai","AAAI/config","ablation")

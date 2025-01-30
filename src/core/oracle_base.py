@@ -53,7 +53,6 @@ class Oracle(Trainable,metaclass=ABCMeta):
         result = [self.predict(dataset.get_instance(i)) for i in sptest]
         return result
    
-    '''@abstractmethod'''#TODO: need to be reactivated and implemented. May can be removed accordingly to Mario and GRETEL philosphy
     def evaluate(self, dataset: Dataset, fold_id=0):
         pass
     
