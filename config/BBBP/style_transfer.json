@@ -15,7 +15,7 @@
     "do-pairs":[ {"compose_bbbp_gcn" : "config/snippets/do-pairs/BBBP_GCN.json"} ],
     "explainers": [ 
          {
-            "class": "src.explainer.generative.graph_morph.GraphMorphExplainer",
+            "class": "src.explainer.generative.graph_morph.GIST",
             "parameters": {
                 "batch_size": 32,
                 "epochs": 50,

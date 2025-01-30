@@ -45,7 +45,7 @@ htmlcov/
 .nox/
 .coverage
 .coverage.*
-.cache
+#.cache
 nosetests.xml
 coverage.xml
 *.cover
@@ -133,6 +133,7 @@ dmypy.json
 data/*
 data/datasets/*
 data/working/*
+data/cache/explainers/*
 data/PROTEINS/*
 # data folders
 data/working*

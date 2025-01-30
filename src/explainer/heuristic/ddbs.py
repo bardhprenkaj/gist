@@ -27,6 +27,15 @@ class DataDrivenBidirectionalSearchExplainer(Explainer):
         self.distance_metric = get_instance_kvargs(self.local_config['parameters']['distance_metric']['class'], 
                                                     self.local_config['parameters']['distance_metric']['parameters'])
         
+        max_nodes = max([instance.data.shape[0] for instance in self.dataset.instances])
+        for instance in self.dataset.instances:
+            adj_matrix = instance.data
+            # Create a new zero matrix of size max_nodes x max_nodes
+            padded_matrix = np.zeros((max_nodes, max_nodes), dtype=adj_matrix.dtype)
+            # Copy the original matrix into the top-left corner of the new matrix
+            padded_matrix[:adj_matrix.shape[0], :adj_matrix.shape[0]] = adj_matrix
+            instance.data = padded_matrix
+
 
     def check_configuration(self):
         super().check_configuration()

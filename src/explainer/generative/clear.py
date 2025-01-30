@@ -78,7 +78,10 @@ class CLEARExplainer(Trainable, Explainer):
             
             model_return = self.model(features, causality, adj, labels)
             adj_reconst, features_reconst = model_return['adj_reconst'], model_return['features_reconst']
-            
+
+            adj_reconst = adj_reconst[:instance.data.shape[0],:instance.data.shape[0]]
+            features_reconst = features_reconst[:instance.data.shape[0],:]
+        
             adj_reconst_binary = torch.bernoulli(adj_reconst.squeeze())
             
             cf_instance = GraphInstance(id=instance.id,

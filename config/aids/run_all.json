@@ -1,11 +1,18 @@
 {  
     "experiment": {
-        "scope": "aids",
+        "scope": "AIDS",
         "parameters": {
             "lock_release_tout":120,
             "propagate":[
-                {"in_sections" : ["explainers"], "params": {"fold_id":4}},
-                {"in_sections" : ["do-pairs/oracle"], "params": {"fold_id": -1}}
+                {"in_sections" : ["explainers"], "params": {"fold_id":1}},
+                {"in_sections" : ["do-pairs/oracle"], "params": {"fold_id": -1}},
+                {"in_sections": ["do-pairs/dataset"],"params": 
+                    { "manipulators" : [
+                        { "class": "src.dataset.manipulators.causality.Causality", "parameters": {} },
+                        { "class": "src.dataset.manipulators.centralities.NodeCentrality", "parameters": {} }    
+                        ] 
+                    }
+                }
             ],
             "expand" : {  "folds" : [ "explainers"], "triplets" : true } 
         }
@@ -50,6 +57,25 @@
         {
             "class": "src.explainer.generative.rsgg.RSGG",
             "parameters": {
+              "epochs": 10,
+              "models": [
+                {
+                    "class": "src.explainer.generative.gans.graph.model.GAN",
+                    "parameters": {
+                        "batch_size": 1,
+                        "discriminator": {
+                            "class": "src.explainer.generative.gans.graph.discriminators.TopKPoolingDiscriminator",
+                            "parameters": {}
+                        }
+                    }
+                }
+            ]
+            }
+          },
+          {"class": "src.explainer.generative.cf2.CF2Explainer","parameters":{"epochs": 20, "batch_size_ratio": 0.2, "lr" : 0.02, "alpha" : 0.7, "lam" : 20, "gamma" : 0.9}},
+          {
+            "class": "src.explainer.generative.rsgg.RSGG",
+            "parameters": {
               "epochs": 500,
               "models": [
                 {
@@ -64,8 +90,26 @@
                 }
             ]
             }
-          } 
-
+          },
+          {
+            "class": "src.explainer.generative.graph_morph.GIST",
+            "parameters": {
+                "batch_size": 16,
+                "epochs": 50,
+                "alpha": 0.9
+            }
+        },
+        {
+            "class": "src.explainer.generative.cfgnn.CFGNNCExplainer",
+            "parameters": {
+                "learning_rate": 0.01,
+                "K": 5,
+                "beta": 0.6,
+                "gamma": 0.2
+            }
+        },
+        {"class": "src.explainer.search.i_rand.IRandExplainer", "parameters": {"p": 0.01, "t": 3}},
+        {"class": "src.explainer.generative.clear.CLEARExplainer","parameters":{ "epochs": 10, "lr": 0.01, "lambda_cfe": 0.1, "alpha": 0.4, "batch_size": 32 }}
      ],
     "compose_mes" : "config/snippets/default_metrics_w_dumper.json",
     "compose_strs" : "config/snippets/default_store_paths.json"
