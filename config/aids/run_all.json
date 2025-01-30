@@ -55,43 +55,6 @@
     } ],
     "explainers": [ 
         {
-            "class": "src.explainer.generative.rsgg.RSGG",
-            "parameters": {
-              "epochs": 10,
-              "models": [
-                {
-                    "class": "src.explainer.generative.gans.graph.model.GAN",
-                    "parameters": {
-                        "batch_size": 1,
-                        "discriminator": {
-                            "class": "src.explainer.generative.gans.graph.discriminators.TopKPoolingDiscriminator",
-                            "parameters": {}
-                        }
-                    }
-                }
-            ]
-            }
-          },
-          {"class": "src.explainer.generative.cf2.CF2Explainer","parameters":{"epochs": 20, "batch_size_ratio": 0.2, "lr" : 0.02, "alpha" : 0.7, "lam" : 20, "gamma" : 0.9}},
-          {
-            "class": "src.explainer.generative.rsgg.RSGG",
-            "parameters": {
-              "epochs": 500,
-              "models": [
-                {
-                    "class": "src.explainer.generative.gans.graph.model.GAN",
-                    "parameters": {
-                        "batch_size": 1,
-                        "discriminator": {
-                            "class": "src.explainer.generative.gans.graph.discriminators.TopKPoolingDiscriminator",
-                            "parameters": {}
-                        }
-                    }
-                }
-            ]
-            }
-          },
-          {
             "class": "src.explainer.generative.graph_morph.GIST",
             "parameters": {
                 "batch_size": 16,
