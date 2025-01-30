@@ -27,7 +27,7 @@ from src.explainer.helpers.perturbers.dce import DCEPerturber
 from src.utils.cfg_utils import init_dflts_to_of
 from src.utils.logger import GLogger
 
-class GraphMorphExplainer(Trainable, Explainer):
+class GIST(Trainable, Explainer):
 
     def init(self):
         super().init()        
@@ -40,7 +40,7 @@ class GraphMorphExplainer(Trainable, Explainer):
 
         self.device =  "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.model = GraphMorph(input_dim=self.input_dim, 
+        self.model = GISTNetwork(input_dim=self.input_dim, 
                                 hidden_dim=self.hidden_dim, 
                                 output_dim=self.input_dim).to(self.device).double()
         
@@ -310,7 +310,7 @@ class GraphMorphExplainer(Trainable, Explainer):
 
 
 
-class GraphMorph(nn.Module):
+class GISTNetwork(nn.Module):
 
     def __init__(self, input_dim, hidden_dim, output_dim, heads=2):
         """
@@ -322,7 +322,7 @@ class GraphMorph(nn.Module):
             output_dim (int): Dimension of output node embeddings.
             heads (int): Number of attention heads in the transformer layer.
         """
-        super(GraphMorph, self).__init__()
+        super(GISTNetwork, self).__init__()
         # Node embedding layers using TransformerConv
         self.trans1 = TransformerConv(input_dim, hidden_dim // heads, heads=heads, dropout=0.1)
         self.trans2 = TransformerConv(hidden_dim, output_dim, heads=1, dropout=0.1)
