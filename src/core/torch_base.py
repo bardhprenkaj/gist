@@ -39,17 +39,20 @@ class TorchBase(Trainable):
             else "cpu"
         )
         self.model.to(self.device) 
-        
+        self.model.device = self.device
         self.patience = 0                 
     
     def real_fit(self):
         instances = self.dataset.get_torch_instances(fold_id=self.fold_id)
         train_loader, val_loader = self.__get_loaders(instances)
+
+        self.context.logger.info(f'Finished getting loaders')
         
-        best_val_loss =float('inf')
+        best_val_loss = float('inf')
         interrupt: bool = False
 
         for epoch in tqdm.tqdm(range(self.epochs)):
+            self.context.logger.info(f'Started epoch {epoch}')
             self.model.train()
             losses, preds, labels_list = self.fwd(train_loader)
             accuracy = self.accuracy(labels_list, preds)
@@ -127,10 +130,13 @@ class TorchBase(Trainable):
             if not val:
                 loss.backward()
                 self.optimizer.step()
-            
-            labels_list += list(labels.squeeze().long().detach().to('cpu').numpy())
-            preds += list(pred.squeeze().detach().to('cpu').numpy())
-        
+            try:
+                labels_list += list(labels.squeeze().long().detach().to('cpu').numpy())
+                preds += list(pred.squeeze().detach().to('cpu').numpy())
+            except TypeError: # the batch_size is 1, so can't iterate over 0-d array
+                labels_list += [labels.squeeze().long().detach().to('cpu').numpy()]
+                preds += [pred.squeeze().detach().to('cpu').numpy()]
+
         return losses, preds, labels_list
 
 

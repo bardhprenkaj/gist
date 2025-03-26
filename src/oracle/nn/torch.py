@@ -30,8 +30,12 @@ class OracleTorch(TorchBase, Oracle):
             pred, loss = self.model.fwd(node_features, edge_index, edge_weights, batch.batch, labels, self.loss_fn)
             losses.append(loss.to('cpu').detach().numpy())
             
-            labels_list += list(labels.squeeze().long().detach().to('cpu').numpy())
-            preds += list(pred.squeeze().detach().to('cpu').numpy())
+            try:
+                labels_list += list(labels.squeeze().long().detach().to('cpu').numpy())
+                preds += list(pred.squeeze().detach().to('cpu').numpy())
+            except TypeError:
+                labels_list += [labels.squeeze().long().detach().to('cpu').numpy()]
+                preds += [pred.squeeze().detach().to('cpu').numpy()]
             
         accuracy = self.accuracy(labels_list, preds)
         self.context.logger.info(f'Test accuracy = {np.mean(accuracy):.4f}')
